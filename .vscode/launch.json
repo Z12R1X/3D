@@ -9,7 +9,7 @@
       "stopAtEntry": false,
       "externalConsole": false,
       "cwd": "/mnt/c/proj/cpp/project",
-      "program": "/mnt/c/proj/cpp/project/build/Debug/outDebug",
+      "program": "/mnt/c/proj/cpp/project/test1",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
