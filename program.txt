@@ -1,0 +1,232 @@
+#pragma once
+#include <SDL2/SDL.h>
+#include <vector>
+#include <cmath>
+#include <numbers>
+#include <chrono>
+
+struct vec3d{
+	float x,y,z,w;
+  	vec3d():x(0),y(0),z(0),w(1){};
+  	vec3d(float xCor, float yCor, float zCor):x(xCor),y(yCor),z(zCor),w(1){};
+};
+struct triangle{
+  	vec3d p[3];
+};
+using mat4x4=float[4][4];
+using mesh=std::vector<triangle>;
+
+class Engine3D{
+	public:
+		Engine3D(SDL_Window* window, SDL_Renderer* render, mesh& obj);
+		void Render(const float speedOfRotation);
+		void Create();
+	private:
+		SDL_Renderer* renderer;
+		mesh meshCube;
+		mat4x4 matProj={0};
+		vec3d camera;
+		float fTheta;
+		float deltaTime=0.0f;
+		int ScreenWidth,ScreenHeight;
+		void MultiplyMatrixVector(const vec3d& i, vec3d& o,const mat4x4& m);
+};
+
+#include "engine.hpp"
+
+Engine3D::Engine3D(SDL_Window *window_, SDL_Renderer* renderer_, mesh& obj){
+	SDL_GetWindowSize(window_, &ScreenWidth, &ScreenHeight);
+	renderer=renderer_;
+	meshCube=obj;
+	Create();
+}
+
+void Engine3D::MultiplyMatrixVector(const vec3d &i, vec3d &o,const mat4x4 &m){
+	o.x=i.x*m[0][0]+i.y*m[1][0]+i.z*m[2][0]+i.w*m[3][0];
+	o.y=i.x*m[0][1]+i.y*m[1][1]+i.z*m[2][1]+i.w*m[3][1];
+	o.z=i.x*m[0][2]+i.y*m[1][2]+i.z*m[2][2]+i.w*m[3][2];
+	float w=i.x*m[0][3]+i.y*m[1][3]+i.z*m[2][3]+i.w*m[3][3];
+	if (w!=0.0f){
+		o.x/=w;o.y/=w;o.z/=w;
+	}
+}
+
+void Engine3D::Create(){
+	// Projection Matrix
+	float fNear=0.1f;
+	float fFar=1000.0f;
+	float fFov=90.0f;
+	float fAspectRatio=(float)ScreenHeight/(float)ScreenWidth;
+	float fFovRad =1.0f/tanf(fFov*0.5f/180.0f*std::numbers::pi);
+	matProj[0][0]=fAspectRatio*fFovRad;
+	matProj[1][1]=fFovRad;
+	matProj[2][2]=fFar/(fFar-fNear);
+	matProj[3][2]=(-fFar*fNear)/(fFar-fNear);
+	matProj[2][3]=1.0f;
+}
+
+void Engine3D::Render(const float speedOfRotation)
+{
+	auto time1=std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> duration(0);
+	SDL_SetRenderDrawColor(renderer,0,0,0,SDL_ALPHA_OPAQUE);
+	SDL_RenderClear(renderer);
+	SDL_SetRenderDrawColor(renderer,255,255,255,SDL_ALPHA_OPAQUE);
+	mat4x4 matRotZ={0},matRotX={0};
+	fTheta+=speedOfRotation*deltaTime;
+	// Rotation Z
+	matRotZ[0][0]=cosf(fTheta);
+	matRotZ[0][1]=sinf(fTheta);
+	matRotZ[1][0]=-sinf(fTheta);
+	matRotZ[1][1]=cosf(fTheta);
+	matRotZ[2][2]=1;
+	matRotZ[3][3]=1;
+	// Rotation X
+	matRotX[0][0]=1;
+	matRotX[1][1]=cosf(fTheta*0.5f);
+	matRotX[1][2]=sinf(fTheta*0.5f);
+	matRotX[2][1]=-sinf(fTheta*0.5f);
+	matRotX[2][2]=cosf(fTheta*0.5f);
+	matRotX[3][3]=1;
+	// Draw Triangles
+	for (const auto& tri : meshCube){
+		triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
+		// Rotate in Z-Axis
+		MultiplyMatrixVector(tri.p[0], triRotatedZ.p[0], matRotZ);
+		MultiplyMatrixVector(tri.p[1], triRotatedZ.p[1], matRotZ);
+		MultiplyMatrixVector(tri.p[2], triRotatedZ.p[2], matRotZ);
+		// Rotate in X-Axis
+		MultiplyMatrixVector(triRotatedZ.p[0], triRotatedZX.p[0], matRotX);
+		MultiplyMatrixVector(triRotatedZ.p[1], triRotatedZX.p[1], matRotX);
+		MultiplyMatrixVector(triRotatedZ.p[2], triRotatedZX.p[2], matRotX);
+		// Offset into the screen
+		triTranslated = triRotatedZX;
+		triTranslated.p[0].z=triRotatedZX.p[0].z+3.0f;
+		triTranslated.p[1].z=triRotatedZX.p[1].z+3.0f;
+		triTranslated.p[2].z=triRotatedZX.p[2].z+3.0f;
+
+		vec3d normal, line1,line2;
+		line1.x=triTranslated.p[1].x-triTranslated.p[0].x;
+		line1.y=triTranslated.p[1].y-triTranslated.p[0].y;
+		line1.z=triTranslated.p[1].z-triTranslated.p[0].z;
+		
+		line2.x=triTranslated.p[2].x-triTranslated.p[0].x;
+		line2.y=triTranslated.p[2].y-triTranslated.p[0].y;
+		line2.z=triTranslated.p[2].z-triTranslated.p[0].z;
+
+		normal.x=line1.y*line2.z-line1.z*line2.y;
+		normal.y=line1.z*line2.x-line1.x*line2.z;
+		normal.z=line1.x*line2.y-line1.y*line2.x;
+		float normalLen=sqrt(normal.x*normal.x+normal.y*normal.y+normal.z*normal.z);
+		normal.x/=normalLen;normal.y/=normalLen;normal.z/=normalLen;
+
+		if(normal.x*(triTranslated.p[0].x-camera.x)+
+		normal.y*(triTranslated.p[0].y-camera.y)+
+		normal.z*(triTranslated.p[0].z-camera.z)<0.0f){
+			MultiplyMatrixVector(triTranslated.p[0], triProjected.p[0], matProj);
+			MultiplyMatrixVector(triTranslated.p[1], triProjected.p[1], matProj);
+			MultiplyMatrixVector(triTranslated.p[2], triProjected.p[2], matProj);
+			// Scale into view
+			triProjected.p[0].x+=1.0f;
+			triProjected.p[0].y+=1.0f;
+			triProjected.p[1].x+=1.0f;
+			triProjected.p[1].y+=1.0f;
+			triProjected.p[2].x+=1.0f;
+			triProjected.p[2].y+=1.0f;
+			triProjected.p[0].x*=0.5f*(float)ScreenWidth;
+			triProjected.p[0].y*=0.5f*(float)ScreenHeight;
+			triProjected.p[1].x*=0.5f*(float)ScreenWidth;
+			triProjected.p[1].y*=0.5f*(float)ScreenHeight;
+			triProjected.p[2].x*=0.5f*(float)ScreenWidth;
+			triProjected.p[2].y*=0.5f*(float)ScreenHeight;
+			SDL_FPoint points[4]={triProjected.p[0].x,triProjected.p[0].y,triProjected.p[1].x,triProjected.p[1].y, triProjected.p[2].x,triProjected.p[2].y,triProjected.p[0].x,triProjected.p[0].y};
+			SDL_RenderDrawLinesF(renderer,points,4);
+			SDL_Vertex verts[3];
+			verts[0].position=points[0];verts[0].color=SDL_Color{255,0,0,255};
+			verts[1].position=points[1];verts[1].color=SDL_Color{0,0,255,255};
+			verts[2].position=points[2];verts[2].color=SDL_Color{0,255,0,255};
+			SDL_RenderGeometry(renderer,nullptr,verts,3,nullptr,0);
+		}
+	}SDL_RenderPresent(renderer);
+	auto time2=std::chrono::high_resolution_clock::now();
+	duration=time2-time1;
+	deltaTime=duration.count();
+	time1=time2;
+}
+
+#include "engine.hpp"
+
+// cube
+// SOUTH
+triangle tri1 = {vec3d(0.0f, 0.0f, 0.0f), vec3d(0.0f, 1.0f, 0.0f), vec3d(1.0f, 1.0f, 0.0f)};
+triangle tri2 = {vec3d(0.0f, 0.0f, 0.0f), vec3d(1.0f, 1.0f, 0.0f), vec3d(1.0f, 0.0f, 0.0f)};
+// EAST
+triangle tri3 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(1.0f, 1.0f, 0.0f), vec3d(1.0f, 1.0f, 1.0f)};
+triangle tri4 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(1.0f, 1.0f, 1.0f), vec3d(1.0f, 0.0f, 1.0f)};
+// NORTH
+triangle tri5 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(1.0f, 1.0f, 1.0f), vec3d(0.0f, 1.0f, 1.0f)};
+triangle tri6 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(0.0f, 1.0f, 1.0f), vec3d(0.0f, 0.0f, 1.0f)};
+// WEST
+triangle tri7 = {vec3d(0.0f, 0.0f, 1.0f), vec3d(0.0f, 1.0f, 1.0f), vec3d(0.0f, 1.0f, 0.0f)};
+triangle tri8 = {vec3d(0.0f, 0.0f, 1.0f), vec3d(0.0f, 1.0f, 0.0f), vec3d(0.0f, 0.0f, 0.0f)};
+// TOP
+triangle tri9 = {vec3d(0.0f, 1.0f, 0.0f), vec3d(0.0f, 1.0f, 1.0f), vec3d(1.0f, 1.0f, 1.0f)};
+triangle tri10 = {vec3d(0.0f, 1.0f, 0.0f), vec3d(1.0f, 1.0f, 1.0f), vec3d(1.0f, 1.0f, 0.0f)};
+// BOTTOM
+triangle tri11 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 0.0f)};
+triangle tri12 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 0.0f), vec3d(1.0f, 0.0f, 0.0f)};
+mesh cube{tri1, tri2, tri3, tri4, tri5, tri6, tri7, tri8, tri9, tri10, tri11, tri12};
+
+// BOTTOM
+triangle tri13 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 0.0f)};
+triangle tri14 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 0.0f), vec3d(1.0f, 0.0f, 0.0f)};
+// SOUTH
+triangle tri15 = {vec3d(0.0f, 0.0f, 0.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(1.0f, 0.0f, 0.0f)};
+// EAST
+triangle tri16 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(1.0f, 0.0f, 1.0f)};
+// NORTH
+triangle tri17 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(0.0f, 0.0f, 1.0f)};
+// WEST
+triangle tri18 = {vec3d(0.0f, 0.0f, 1.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(0.0f, 0.0f, 0.0f)};
+mesh piramid{tri13, tri14, tri15, tri16, tri17, tri18};
+
+triangle tri19 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(0.0f, 0.0f, 0.0f), vec3d(0.0f, 0.0f, 1.0f)};
+triangle tri20 = {vec3d(0.0f, 0.0f, 0.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(1.0f, 0.0f, 0.0f)};
+triangle tri21 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(0.0f, 0.0f, 1.0f)};
+triangle tri22 = {vec3d(0.0f, 0.0f, 1.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(0.0f, 0.0f, 0.0f)};
+mesh halfPira = {tri19, tri20, tri21, tri22};
+
+triangle tri23 = {vec3d(1.0f, 1.0f, 1.0f), vec3d(2.0f, 1.0f, 1.0f), vec3d(2.0f, 2.0f, 2.0f)};
+mesh trian{tri23};
+
+int main()
+{
+  SDL_Window *window;
+  SDL_Renderer *renderer;
+  window = SDL_CreateWindow("3D Renderer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 960, 540, 0);
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  bool running = true;
+  bool rend = true;
+  Engine3D render(window, renderer, cube);
+  SDL_Event event;
+  while (running){
+    if (SDL_PollEvent(&event)){
+      switch (event.type){
+		case SDL_KEYDOWN:
+			rend = false;
+			break;
+		case SDL_KEYUP:
+			rend = true;
+			break;
+		default:
+			break;
+      }
+    }if (SDL_QuitRequested()){
+      running = false;
+      break;
+    }if (rend){
+      render.Render(2.3f);
+    }
+  }
+  return 0;
+}
