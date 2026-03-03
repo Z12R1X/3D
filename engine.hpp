@@ -25,6 +25,7 @@ class Engine3D{
 		SDL_Renderer* renderer;
 		mesh meshCube;
 		mat4x4 matProj={0};
+		vec3d camera;
 		float fTheta;
 		float deltaTime=0.0f;
 		int ScreenWidth,ScreenHeight;

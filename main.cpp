@@ -51,7 +51,7 @@ int main()
   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
   bool running = true;
   bool rend = true;
-  Engine3D render(window, renderer, halfPira);
+  Engine3D render(window, renderer, cube);
   SDL_Event event;
   while (running){
     if (SDL_PollEvent(&event)){
@@ -69,7 +69,7 @@ int main()
       running = false;
       break;
     }if (rend){
-      render.Render(1.0f);
+      render.Render(2.3f);
     }
   }
   return 0;
