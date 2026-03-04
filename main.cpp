@@ -25,19 +25,19 @@ mesh cube{tri1, tri2, tri3, tri4, tri5, tri6, tri7, tri8, tri9, tri10, tri11, tr
 triangle tri13 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 0.0f)};
 triangle tri14 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(0.0f, 0.0f, 0.0f), vec3d(1.0f, 0.0f, 0.0f)};
 // SOUTH
-triangle tri15 = {vec3d(0.0f, 0.0f, 0.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(1.0f, 0.0f, 0.0f)};
+triangle tri15 = {vec3d(0.0f, 0.0f, 0.0f), vec3d(0.5f, 2.0f, 0.5f), vec3d(1.0f, 0.0f, 0.0f)};
 // EAST
-triangle tri16 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(1.0f, 0.0f, 1.0f)};
+triangle tri16 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(0.5f, 2.0f, 0.5f), vec3d(1.0f, 0.0f, 1.0f)};
 // NORTH
-triangle tri17 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(0.0f, 0.0f, 1.0f)};
+triangle tri17 = {vec3d(1.0f, 0.0f, 1.0f), vec3d(0.5f,2.0f,0.5f), vec3d(0.0f, 0.0f, 1.0f)};
 // WEST
-triangle tri18 = {vec3d(0.0f, 0.0f, 1.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(0.0f, 0.0f, 0.0f)};
+triangle tri18 = {vec3d(0.0f,0.0f,1.0f), vec3d(0.5f,2.0f,0.5f), vec3d(0.0f, 0.0f, 0.0f)};
 mesh piramid{tri13, tri14, tri15, tri16, tri17, tri18};
 
-triangle tri19 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(0.0f, 0.0f, 0.0f), vec3d(0.0f, 0.0f, 1.0f)};
-triangle tri20 = {vec3d(0.0f, 0.0f, 0.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(1.0f, 0.0f, 0.0f)};
-triangle tri21 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(0.0f, 0.0f, 1.0f)};
-triangle tri22 = {vec3d(0.0f, 0.0f, 1.0f), vec3d(sqrt(2) / 2.0f, 1.0f, sqrt(2) / 2.0f), vec3d(0.0f, 0.0f, 0.0f)};
+triangle tri19 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(0.0f,0.0f,0.0f), vec3d(0.0f, 0.0f, 1.0f)};
+triangle tri20 = {vec3d(0.0f, 0.0f, 0.0f), vec3d(0.5f,1.0f,0.5f), vec3d(1.0f, 0.0f, 0.0f)};
+triangle tri21 = {vec3d(1.0f, 0.0f, 0.0f), vec3d(0.5f,1.0f,0.5f), vec3d(0.0f, 0.0f, 1.0f)};
+triangle tri22 = {vec3d(0.0f, 0.0f, 1.0f), vec3d(0.5f,1.0f,0.5f), vec3d(0.0f, 0.0f, 0.0f)};
 mesh halfPira = {tri19, tri20, tri21, tri22};
 
 triangle tri23 = {vec3d(1.0f, 1.0f, 1.0f), vec3d(2.0f, 1.0f, 1.0f), vec3d(2.0f, 2.0f, 2.0f)};
@@ -51,7 +51,8 @@ int main()
   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
   bool running = true;
   bool rend = true;
-  Engine3D render(window, renderer, cube);
+  Engine3D render(window, renderer);
+  render.loadMesh("VideoShip.obj");
   SDL_Event event;
   while (running){
     if (SDL_PollEvent(&event)){
@@ -69,7 +70,7 @@ int main()
       running = false;
       break;
     }if (rend){
-      render.Render(2.3f);
+      render.Render(1.5f);
     }
   }
   return 0;

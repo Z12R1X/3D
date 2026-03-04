@@ -1,9 +1,13 @@
 #include "engine.hpp"
 
-Engine3D::Engine3D(SDL_Window *window_, SDL_Renderer* renderer_, mesh& obj){
+float vec3d::dotProduct(const vec3d& vec1,const vec3d& vec2){
+	return vec1.x*vec2.x+vec1.y*vec2.y+vec1.z*vec2.z;
+}
+
+Engine3D::Engine3D(SDL_Window *window_, SDL_Renderer* renderer_){
 	SDL_GetWindowSize(window_, &ScreenWidth, &ScreenHeight);
 	renderer=renderer_;
-	meshCube=obj;
+	//meshCube=obj;
 	Create();
 }
 
@@ -15,6 +19,35 @@ void Engine3D::MultiplyMatrixVector(const vec3d &i, vec3d &o,const mat4x4 &m){
 	if (w!=0.0f){
 		o.x/=w;o.y/=w;o.z/=w;
 	}
+}
+
+bool Engine3D::loadMesh(const std::string& filename){
+	if(!meshObject.empty()){
+		meshObject.clear();
+	}
+	std::ifstream file(filename);
+	if(!file.is_open()){
+		return false;
+	}
+	std::vector<vec3d> vertsCache;
+	while(!file.eof()){
+		char line[128];
+		file.getline(line,128);
+		std::stringstream s;
+		s<<line;
+		char junk;
+		if(line[0]=='v'){
+			vec3d v;
+			s>>junk>>v.x>>v.y>>v.z;
+			vertsCache.push_back(v);
+		}
+		if(line[0]=='f'){
+			int f[3];
+			s>>junk>>f[0]>>f[1]>>f[2];
+			meshObject.push_back({vertsCache[f[0]-1],vertsCache[f[1]-1],vertsCache[f[2]-1]});
+		}
+	}
+	return true;
 }
 
 void Engine3D::Create(){
@@ -54,8 +87,11 @@ void Engine3D::Render(const float speedOfRotation)
 	matRotX[2][1]=-sinf(fTheta*0.5f);
 	matRotX[2][2]=cosf(fTheta*0.5f);
 	matRotX[3][3]=1;
+
+	std::vector<triangle> vecTrianglesToRaster;
+
 	// Draw Triangles
-	for (const auto& tri : meshCube){
+	for (const auto& tri:meshObject){
 		triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
 		// Rotate in Z-Axis
 		MultiplyMatrixVector(tri.p[0], triRotatedZ.p[0], matRotZ);
@@ -67,11 +103,11 @@ void Engine3D::Render(const float speedOfRotation)
 		MultiplyMatrixVector(triRotatedZ.p[2], triRotatedZX.p[2], matRotX);
 		// Offset into the screen
 		triTranslated = triRotatedZX;
-		triTranslated.p[0].z=triRotatedZX.p[0].z+3.0f;
-		triTranslated.p[1].z=triRotatedZX.p[1].z+3.0f;
-		triTranslated.p[2].z=triRotatedZX.p[2].z+3.0f;
+		triTranslated.p[0].z=triRotatedZX.p[0].z+8.0f;
+		triTranslated.p[1].z=triRotatedZX.p[1].z+8.0f;
+		triTranslated.p[2].z=triRotatedZX.p[2].z+8.0f;
 
-		vec3d normal, line1,line2;
+		vec3d normal,line1,line2;
 		line1.x=triTranslated.p[1].x-triTranslated.p[0].x;
 		line1.y=triTranslated.p[1].y-triTranslated.p[0].y;
 		line1.z=triTranslated.p[1].z-triTranslated.p[0].z;
@@ -105,14 +141,34 @@ void Engine3D::Render(const float speedOfRotation)
 			triProjected.p[1].y*=0.5f*(float)ScreenHeight;
 			triProjected.p[2].x*=0.5f*(float)ScreenWidth;
 			triProjected.p[2].y*=0.5f*(float)ScreenHeight;
+
+			vecTrianglesToRaster.push_back(triProjected);
+
+			/*SDL_FPoint points[4]={triProjected.p[0].x,triProjected.p[0].y,triProjected.p[1].x,triProjected.p[1].y, triProjected.p[2].x,triProjected.p[2].y,triProjected.p[0].x,triProjected.p[0].y};
+			SDL_RenderDrawLinesF(renderer,points,4);*/
+			/*SDL_Vertex verts[3];
+			verts[0].position=points[0];verts[0].color=SDL_Color{255,0,0,255};
+			verts[1].position=points[1];verts[1].color=SDL_Color{255,0,0,255};
+			verts[2].position=points[2];verts[2].color=SDL_Color{255,0,0,255};
+			SDL_RenderGeometry(renderer,nullptr,verts,3,nullptr,0);*/
+		}
+		sort(vecTrianglesToRaster.begin(),vecTrianglesToRaster.end(),[](triangle& t1,triangle& t2)
+		{
+			float z1=(t1.p[0].z+t1.p[1].z+t1.p[2].z)/3.0f;
+			float z2=(t2.p[0].z+t2.p[1].z+t2.p[2].z)/3.0f;
+			return z1>z2;
+		});
+		for(auto& triProjected:vecTrianglesToRaster){
 			SDL_FPoint points[4]={triProjected.p[0].x,triProjected.p[0].y,triProjected.p[1].x,triProjected.p[1].y, triProjected.p[2].x,triProjected.p[2].y,triProjected.p[0].x,triProjected.p[0].y};
 			SDL_RenderDrawLinesF(renderer,points,4);
 			SDL_Vertex verts[3];
 			verts[0].position=points[0];verts[0].color=SDL_Color{255,0,0,255};
-			verts[1].position=points[1];verts[1].color=SDL_Color{0,0,255,255};
-			verts[2].position=points[2];verts[2].color=SDL_Color{0,255,0,255};
+			verts[1].position=points[1];verts[1].color=SDL_Color{255,0,0,255};
+			verts[2].position=points[2];verts[2].color=SDL_Color{255,0,0,255};
 			SDL_RenderGeometry(renderer,nullptr,verts,3,nullptr,0);
 		}
+
+
 	}SDL_RenderPresent(renderer);
 	auto time2=std::chrono::high_resolution_clock::now();
 	duration=time2-time1;
