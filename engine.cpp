@@ -162,9 +162,9 @@ void Engine3D::Render(const float speedOfRotation)
 			SDL_FPoint points[4]={triProjected.p[0].x,triProjected.p[0].y,triProjected.p[1].x,triProjected.p[1].y, triProjected.p[2].x,triProjected.p[2].y,triProjected.p[0].x,triProjected.p[0].y};
 			SDL_RenderDrawLinesF(renderer,points,4);
 			SDL_Vertex verts[3];
-			verts[0].position=points[0];verts[0].color=SDL_Color{255,0,0,255};
-			verts[1].position=points[1];verts[1].color=SDL_Color{255,0,0,255};
-			verts[2].position=points[2];verts[2].color=SDL_Color{255,0,0,255};
+			verts[0].position=points[0];verts[0].color=SDL_Color{255,255,255,255};
+			verts[1].position=points[1];verts[1].color=SDL_Color{255,255,255,255};
+			verts[2].position=points[2];verts[2].color=SDL_Color{255,255,255,255};
 			SDL_RenderGeometry(renderer,nullptr,verts,3,nullptr,0);
 		}
 
