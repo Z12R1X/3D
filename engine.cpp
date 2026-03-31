@@ -127,8 +127,8 @@ void Engine3D::Render(const float speedOfRotation)
 	fTheta+=speedOfRotation*deltaTime;
 	// Rotation Z
 	matRotZ[0][0]=cosf(fTheta);
-	matRotZ[0][1]=-sinf(fTheta);//sinf
-	matRotZ[1][0]=sinf(fTheta);//-sinf
+	matRotZ[0][1]=sinf(fTheta);//sinf
+	matRotZ[1][0]=-sinf(fTheta);//-sinf
 	matRotZ[1][1]=cosf(fTheta);
 	matRotZ[2][2]=1.0f;
 	matRotZ[3][3]=1.0f;
@@ -156,9 +156,9 @@ void Engine3D::Render(const float speedOfRotation)
 
 		triTranslated=triRotatedZX;
 
-		triTranslated.p[0].z+=8.0f;
-		triTranslated.p[1].z+=8.0f;
-		triTranslated.p[2].z+=8.0f;
+		triTranslated.p[0].z+=9.5f;
+		triTranslated.p[1].z+=9.5f;
+		triTranslated.p[2].z+=9.5f;
 
 		vec3d norm,line1,line2;
 		line1=triTranslated.p[1]-triTranslated.p[0];
@@ -194,8 +194,8 @@ void Engine3D::Render(const float speedOfRotation)
 			SDL_RenderDrawLinesF(renderer,points,4);
 			SDL_Vertex verts[3];
 			verts[0].position=points[0];verts[0].color=SDL_Color{255,0,0,255};
-			verts[1].position=points[1];verts[1].color=SDL_Color{0,255,0,255};
-			verts[2].position=points[2];verts[2].color=SDL_Color{0,0,255,255};
+			verts[1].position=points[1];verts[1].color=SDL_Color{255,0,0,255};
+			verts[2].position=points[2];verts[2].color=SDL_Color{255,0,0,255};
 			SDL_RenderGeometry(renderer,nullptr,verts,3,nullptr,0);
 		}
 	}SDL_RenderPresent(renderer);

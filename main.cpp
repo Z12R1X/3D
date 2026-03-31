@@ -25,7 +25,7 @@ int main()
       running = false;
       break;
     }if (rendering){
-      render.Render(0.5f);
+      render.Render(0.25f);
     }
   }
   return 0;
